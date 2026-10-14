@@ -235,6 +235,22 @@ body[data-theme="gothic"] {
 .rem-label input[type="checkbox"] {
   width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; margin: 0;
 }
+.dt-label {
+  flex-direction: row !important; align-items: center; justify-content: center; gap: 8px !important;
+  background: var(--pill); border-radius: 999px; padding: 11px 14px;
+  font-weight: 800; color: var(--text);
+}
+.dt-label input[type="datetime-local"] {
+  width: auto; flex: 1; min-width: 0; background: transparent; border: none;
+  padding: 0; font-size: 14px; font-weight: 800; color: var(--text); font-family: inherit;
+}
+/* время напоминания на самой записи */
+.rem-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--pill); color: var(--text);
+  border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 800;
+  margin-top: 6px;
+}
 /* чтобы календарчик было видно в тёмных темах */
 body[data-theme="dark"] , body[data-theme="gothic"] { color-scheme: dark; }
 body[data-theme="kawaii"], body[data-theme="light"] { color-scheme: light; }

@@ -649,14 +649,18 @@ function renderDay(){
   list.forEach(function(e){
     var div=document.createElement("div");
     div.className="entry"+(e.done?" done":"");
-    var remTxt = e.rem && e.rem.on ? " ⏰ "+escapeHtml(e.rem.when.replace("T"," ")) : "";
+    var remTxt = "";
+    if(e.rem && e.rem.on && e.rem.when){
+      var rw = String(e.rem.when).replace("T"," ");
+      remTxt = '<div class="rem-pill">⏰ напомню '+escapeHtml(rw)+'</div>';
+    }
     var photoHtml = e.photo ? '<img class="photo" src="'+e.photo+'" alt="фото записи">' : "";
     div.innerHTML =
       '<div class="entry-top"><span class="entry-time">🕒 '+escapeHtml(e.time||"--:--")+'</span>'+
       '<button class="mini-btn" data-act="done">'+(e.done?"↩ вернуть":"☑ готово")+'</button>'+
       '<button class="mini-btn danger" data-act="del">удалить</button></div>'+
       '<div class="entry-text">'+escapeHtml(e.text||"")+'</div>'+ photoHtml +
-      '<div style="font-size:12px;color:var(--muted)">📅 '+escapeHtml(e.date)+remTxt+'</div>'+
+      '<div style="font-size:12px;color:var(--muted)">📅 '+escapeHtml(e.date)+'</div>'+remTxt+
       '<div class="entry-edit-row"><input type="date" value="'+escapeHtml(e.date)+'" data-f="date"><input type="time" value="'+escapeHtml(e.time||"12:00")+'" data-f="time"><button class="mini-btn" data-act="save">сохранить дату ♡</button></div>';
     div.querySelector('[data-act="done"]').onclick=function(){ toggleDone(e.id); };
     div.querySelector('[data-act="del"]').onclick=function(){
@@ -754,7 +758,15 @@ function hideRemInfo(){
   els["rem-modal"].classList.add("hidden");
 }
 if(els["f-rem-on"]) els["f-rem-on"].addEventListener("change", function(){
-  if(els["f-rem-on"].checked) showRemInfo();
+  if(els["f-rem-on"].checked){
+    // подставляем время напоминания = дата записи + её время ♡
+    if(!els["f-rem-when"].value){
+      var dd = els["f-date"].value || dayISO;
+      var tt = els["f-time"].value || "09:00";
+      els["f-rem-when"].value = dd + "T" + tt;
+    }
+    showRemInfo();
+  }
 });
 if(els["rem-modal-ok"]) els["rem-modal-ok"].onclick=hideRemInfo;
 if(els["rem-backdrop"]) els["rem-backdrop"].onclick=hideRemInfo;
