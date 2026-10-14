@@ -207,12 +207,18 @@ function girlHTML(n, cls){
   return '<img src="'+src+'" class="'+(cls||"")+'" alt="девочка '+g+'" loading="lazy" onerror="this.outerHTML=\'' + svg + '\'">';
 }
 function mascotHTML(g){
+  return girlVariantHTML(g, "");
+}
+function girlVariantHTML(g, cls){
   var list = AVAILABLE[g]||[];
   if(list.length){
     var src = list[VARIANT_I[g]%list.length];
-    return '<img src="'+src+'" alt="девочка '+g+'" loading="lazy" onerror="this.outerHTML=\'' + escAttr(svgGirl(g)) + '\'">';
+    return '<img src="'+src+'" class="'+(cls||"")+'" alt="девочка '+g+'" loading="lazy" onerror="this.outerHTML=\'' + escAttr(svgGirl(g)) + '\'">';
   }
   return svgGirl(g);
+}
+function saveVariant(g){
+  try{ if(!DB.variantI) DB.variantI={}; DB.variantI[g]=VARIANT_I[g]; }catch(e){}
 }
 function setGirl(el, n){
   if(!el) return;
@@ -234,7 +240,7 @@ function themeGirlName(){
 }
 
 /* ---------- хранилище ---------- */
-function blankData(){ return {theme:"kawaii", decor:"girls", flowerI:{}, entries:[], fired:{}}; }
+function blankData(){ return {theme:"kawaii", decor:"girls", flowerI:{}, variantI:{}, entries:[], fired:{}}; }
 function load(){
   try{
     var raw = localStorage.getItem(LS_KEY);
@@ -244,6 +250,7 @@ function load(){
     if(!d.theme) d.theme="kawaii";
     if(d.decor!=="girls" && d.decor!=="flowers" && d.decor!=="none") d.decor="girls";
     if(!d.flowerI) d.flowerI={};
+    if(!d.variantI) d.variantI={};
     if(!d.fired) d.fired={};
     // чистим fired от удалённых записей, чтобы не копился мусор
     try{
@@ -256,6 +263,7 @@ function load(){
 }
 function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(DB)); return true; }catch(e){ toast("Ой! Память телефона переполнена. Удали старые фото ♡"); return false; } }
 var DB = load();
+try{ if(DB.variantI){ for(var _gk in VARIANT_I){ if(DB.variantI[_gk]!=null) VARIANT_I[_gk]=DB.variantI[_gk]; } } }catch(e){}
 
 /* ---------- даты: недели СТРОГО Пн–Вс ---------- */
 function pad(n){ return (n<10?"0":"")+n; }
@@ -493,12 +501,24 @@ function applyDecor(){
     if(els["done-girl"]) els["done-girl"].innerHTML = flowerHTML("flower-big");
     return;
   }
-  // девочки — твои файлы не трогаем, только показываем
+  // девочки — твои файлы не трогаем, только показываем (все места следуют за текущим образом)
   var g = themeGirl();
   setMascot();
-  setGirl(els["progress-girl"], g);
-  setGirl(els["empty-girl"], g);
-  setGirl(els["done-girl"], g);
+  var gh = girlVariantHTML(g, "");
+  ["progress-girl","empty-girl","done-girl"].forEach(function(k){ if(els[k]) els[k].innerHTML=gh; });
+}
+/* смена образа при каждом действии ♡ */
+function bumpDecor(){
+  var d = currentDecor();
+  if(d==="flowers"){ flowerRandomize(); applyDecor(); return; }
+  if(d!=="girls") return;
+  var g = themeGirl();
+  var list = AVAILABLE[g]||[];
+  if(list.length>1){
+    VARIANT_I[g] = (VARIANT_I[g]+1)%list.length;
+    saveVariant(g); save();
+  }
+  applyDecor();
 }
 
 /* ---------- темы ---------- */
@@ -529,7 +549,7 @@ function renderThemes(){
     var b = document.createElement("button");
     b.className = "theme-card"+(DB.theme===t.id?" active":"");
     b.innerHTML = '<div class="theme-dot" style="background:'+t.color+'"></div>'+decorPreviewFor(t)+'<div>'+themeCardName(t)+'</div>';
-    b.onclick = function(){ DB.theme=t.id; if(currentDecor()==="flowers"){ if(!DB.flowerI) DB.flowerI={}; DB.flowerI[t.id]=Math.floor(Math.random()*flowerVariantCount()); } save(); applyTheme(); };
+    b.onclick = function(){ DB.theme=t.id; if(currentDecor()==="flowers"){ if(!DB.flowerI) DB.flowerI={}; DB.flowerI[t.id]=Math.floor(Math.random()*flowerVariantCount()); } save(); applyTheme(); bumpDecor(); };
     els["themes-grid"].appendChild(b);
   });
 }
@@ -601,7 +621,7 @@ function renderWeek(){
 function toggleDone(id){
   var e = DB.entries.find(function(x){return x.id===id;});
   if(!e) return;
-  e.done=!e.done; save(); renderWeek();
+  e.done=!e.done; save(); renderWeek(); bumpDecor();
   if(els["view-day"].classList.contains("hidden")===false) renderDay();
 }
 
@@ -612,7 +632,7 @@ function openDay(iso){
   els["view-day"].classList.remove("hidden");
   els["f-date"].value=iso;
   if(!els["f-time"].value) els["f-time"].value="12:00";
-  renderDay();
+  renderDay(); bumpDecor();
   window.scrollTo({top:0, behavior:"smooth"});
 }
 function renderDay(){
@@ -643,14 +663,14 @@ function renderDay(){
       askDelete(function(){
         DB.entries=DB.entries.filter(function(x){return x.id!==e.id;});
         try{ delete DB.fired[e.id]; }catch(err){}
-        save(); renderDay(); renderWeek();
+        save(); renderDay(); renderWeek(); bumpDecor();
       });
     };
     div.querySelector('[data-act="save"]').onclick=function(){
       var nd=div.querySelector('[data-f="date"]').value;
       var nt=div.querySelector('[data-f="time"]').value;
       if(nd) e.date=nd; if(nt) e.time=nt;
-      save(); renderDay(); renderWeek(); toast("Дата обновлена ♡", true);
+      save(); renderDay(); renderWeek(); toast("Дата обновлена ♡", true); bumpDecor();
     };
     els["day-list"].appendChild(div);
   });
@@ -752,7 +772,7 @@ els["add-form"].addEventListener("submit", function(ev){
   els["f-text"].value=""; pendingPhoto=""; els["f-photo"].value=""; els["photo-preview-wrap"].classList.add("hidden");
   els["f-rem-on"].checked=false; els["f-rem-when"].value="";
   dayISO=date; renderDay(); renderWeek();
-  toast("Записано! Ты умница ♡", true);
+  toast("Записано! Ты умница ♡", true); bumpDecor();
 });
 
 /* ---------- листы ---------- */
@@ -797,8 +817,8 @@ try{
     sy=null;
   });
 });
-els["btn-back"].onclick=function(){ els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); };
-els["btn-home"].onclick=function(){ weekStart=startOfWeekMonday(new Date()); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); window.scrollTo({top:0,behavior:"smooth"}); };
+els["btn-back"].onclick=function(){ els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); };
+els["btn-home"].onclick=function(){ weekStart=startOfWeekMonday(new Date()); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); window.scrollTo({top:0,behavior:"smooth"}); };
 
 function renderSheet(){
   els["year-label"].textContent=sheetYear;
@@ -823,7 +843,7 @@ function renderSheet(){
     var isCur = toISO(mon)===toISO(weekStart);
     b.className="week-btn"+(isCur?" active":"");
     b.textContent=(isCur?"💗 ":"🤍 ")+label;
-    (function(m){ b.onclick=function(){ weekStart=startOfWeekMonday(m); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); closeSheets(); }; })(mon);
+    (function(m){ b.onclick=function(){ weekStart=startOfWeekMonday(m); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); closeSheets(); }; })(mon);
     els["weeks-list"].appendChild(b);
     cur=addDays(cur,7);
     if(els["weeks-list"].children.length>6) break;
@@ -899,29 +919,18 @@ els["mascot-img"].addEventListener("click", function(){
   ensureAudio();
   var d = currentDecor();
   var b=els["mascot-bubble"];
+  bumpDecor();
   if(d==="flowers"){
-    // цветочки всегда на рандом ♡
     var t = DB.theme||"kawaii";
-    flowerRandomize();
-    applyDecor();
     var arr = FLOWER_PHRASES[t]||FLOWER_PHRASES.kawaii;
     var txt = arr[flowerPhraseI%arr.length]; flowerPhraseI++;
     b.textContent = txt;
-    b.classList.remove("hidden");
-    clearTimeout(b._t);
-    b._t=setTimeout(function(){ b.classList.add("hidden"); }, 2600);
-    return;
+  } else {
+    var g = themeGirl();
+    var arr2 = PHRASES_BY_GIRL[g] || PHRASES;
+    var txt2 = arr2[phraseI%arr2.length]; phraseI++;
+    b.textContent = themeGirlName() + ": " + txt2;
   }
-  var g = themeGirl();
-  // чередование девочек по тапу ♡ (твои файлы не трогаем, только показываем)
-  var glist = AVAILABLE[g]||[];
-  if(glist.length>1){
-    VARIANT_I[g] = (VARIANT_I[g]+1)%glist.length;
-    setMascot();
-  }
-  var arr2 = PHRASES_BY_GIRL[g] || PHRASES;
-  var txt2 = arr2[phraseI%arr2.length]; phraseI++;
-  b.textContent = themeGirlName() + ": " + txt2;
   b.classList.remove("hidden");
   clearTimeout(b._t);
   b._t=setTimeout(function(){ b.classList.add("hidden"); }, 2600);
