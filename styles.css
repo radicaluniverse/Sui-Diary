@@ -146,6 +146,8 @@ body[data-theme="gothic"] {
 }
 .task-check.on { background: var(--accent); color: #fff; }
 .task-text { flex: 1; }
+.task-time { font-size: 11px; font-weight: 900; color: var(--muted); flex-shrink: 0; }
+.task-bell { font-size: 11px; flex-shrink: 0; }
 .day-foot {
   margin-top: auto; display: flex; justify-content: space-between; align-items: center;
   font-size: 12px; color: var(--muted); padding-top: 6px;

@@ -288,6 +288,15 @@ function fmtDayLong(iso){
   var d = parseISO(iso);
   return d.getDate()+" "+MONTHS_RU[d.getMonth()];
 }
+/* «14 окт. в 10:00» — чтобы время было видно сразу, не открывая дневник */
+function fmtRem(when){
+  var s = String(when||"");
+  if(s.indexOf("T")<0) return s;
+  var parts = s.split("T");
+  var d = parseISO(parts[0]);
+  var t = (parts[1]||"").slice(0,5);
+  return d.getDate()+" "+MONTHS_SHORT[d.getMonth()]+" в "+(t||"--:--");
+}
 function uid(){ return "e"+Date.now().toString(36)+Math.floor(Math.random()*9999); }
 
 /* ---------- состояние ---------- */
@@ -596,7 +605,11 @@ function renderWeek(){
     var tasks="";
     if(!list.length){ tasks='<div style="text-align:center;color:var(--muted);font-size:12px;margin:6px 0">— ♡ —</div>'; }
     list.slice(0,4).forEach(function(e){
-      tasks+='<div class="task-pill'+(e.done?" done":"")+'"><button class="task-check'+(e.done?" on":"")+'" data-toggle="'+e.id+'">'+(e.done?"✓":"")+'</button><span class="task-text">'+escapeHtml((e.text||"без текста").slice(0,40))+'</span></div>';
+      // время записи видно сразу в неделе — не заходя в заметку ♡
+      var tm = e.time ? String(e.time).slice(0,5) : "";
+      var rtime = tm ? '<span class="task-time">🕒 '+escapeHtml(tm)+'</span>' : "";
+      if(e.rem && e.rem.on) rtime += '<span class="task-bell">⏰</span>';
+      tasks+='<div class="task-pill'+(e.done?" done":"")+'"><button class="task-check'+(e.done?" on":"")+'" data-toggle="'+e.id+'">'+(e.done?"✓":"")+'</button><span class="task-text">'+escapeHtml((e.text||"без текста").slice(0,40))+'</span>'+rtime+'</div>';
     });
     if(list.length>4) tasks+='<div style="font-size:11px;color:var(--muted);text-align:center">+ ещё '+(list.length-4)+'</div>';
     var foot='<div class="day-foot"><span>'+d.getDate()+" "+MONTHS_SHORT[d.getMonth()]+'</span><b>☑ '+list.filter(function(e){return e.done;}).length+'/'+list.length+'</b></div>';
@@ -784,7 +797,7 @@ els["add-form"].addEventListener("submit", function(ev){
   els["f-text"].value=""; pendingPhoto=""; els["f-photo"].value=""; els["photo-preview-wrap"].classList.add("hidden");
   els["f-rem-on"].checked=false; els["f-rem-when"].value="";
   dayISO=date; renderDay(); renderWeek();
-  toast("Записано! Ты умница ♡", true); bumpDecor();
+  toast(remOn ? ("Напомню "+fmtRem(remWhen)+" ♡") : "Записано! Ты умница ♡", true); bumpDecor();
 });
 
 /* ---------- листы ---------- */
@@ -910,13 +923,15 @@ els["btn-notify"].onclick=function(){
 function fireReminder(e){
   beep();
   try{ if(navigator.vibrate) navigator.vibrate([200,100,200]); }catch(err){}
-  var txt=(e.text||"Пора!").slice(0,80);
+  var txt=(e.text||"Пора!").slice(0,60);
+  var when = fmtRem(e.rem && e.rem.when);
+  var head = when ? when+" — " : "";
   try{
     if("Notification" in window && Notification.permission==="granted"){
-      new Notification("Дневник Суи ⏰", {body:txt});
+      new Notification("⏰ "+when, {body: txt, tag: e.id});
     }
   }catch(err){}
-  toast("⏰ "+txt, true);
+  toast("⏰ "+head+txt, true);
 }
 function checkReminders(showMissed){
   var now=new Date();
@@ -929,7 +944,7 @@ function checkReminders(showMissed){
       DB.fired[e.id]=1;
       save();
       fireReminder(e);
-      if(showMissed) toast("Пропущенное ⏰: "+(e.text||"задача").slice(0,60));
+      if(showMissed) toast("Пропущенное ⏰ "+fmtRem(e.rem&&e.rem.when)+": "+(e.text||"задача").slice(0,50));
     }
   });
 }
