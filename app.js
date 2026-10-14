@@ -300,7 +300,7 @@ var pendingPhoto = ""; // dataURL сжатое
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
 var els = {};
-["btn-home","week-pill","btn-settings","col-left","col-right","ring-fg","ring-text","progress-sub","progress-girl",
+["btn-home","week-pill","week-prev","week-next","btn-settings","col-left","col-right","ring-fg","ring-text","progress-sub","progress-girl",
 "view-week","view-day","btn-back","day-title","day-sub","day-counter","day-list","day-empty","empty-girl","day-done","done-girl",
 "add-form","f-text","f-date","f-time","f-photo","f-rem-on","f-rem-when","photo-preview-wrap","photo-preview","photo-clear",
 "sheet-backdrop","week-sheet","year-prev","year-next","year-label","months-grid","weeks-list","week-sheet-close",
@@ -819,6 +819,15 @@ try{
 });
 els["btn-back"].onclick=function(){ els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); };
 els["btn-home"].onclick=function(){ weekStart=startOfWeekMonday(new Date()); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); window.scrollTo({top:0,behavior:"smooth"}); };
+/* стрелочки листания недель без открытия выбора */
+function stepWeek(dir){
+  weekStart=addDays(weekStart, dir*7);
+  els["view-day"].classList.add("hidden");
+  els["view-week"].classList.remove("hidden");
+  renderWeek(); bumpDecor();
+}
+if(els["week-prev"]) els["week-prev"].onclick=function(){ stepWeek(-1); };
+if(els["week-next"]) els["week-next"].onclick=function(){ stepWeek(1); };
 
 function renderSheet(){
   els["year-label"].textContent=sheetYear;

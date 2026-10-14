@@ -106,13 +106,14 @@ body[data-theme="gothic"] {
 }
 .round-btn.small { width: 38px; height: 38px; font-size: 20px; }
 .round-btn:active { transform: scale(.93); }
+.round-btn.nav-arrow { width: 36px; height: 36px; font-size: 22px; font-weight: 900; }
 .week-pill {
   border: none; cursor: pointer;
   background: var(--card); color: var(--text);
-  border-radius: 999px; padding: 12px 26px;
-  font-size: 16px; font-weight: 700;
+  border-radius: 999px; padding: 12px 10px;
+  font-size: 15px; font-weight: 700;
   box-shadow: var(--shadow);
-  max-width: 62vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* главный экран — 2 колонки */
