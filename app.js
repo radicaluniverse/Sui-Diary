@@ -309,7 +309,7 @@ var pendingPhoto = ""; // dataURL сжатое
 /* ---------- dom ---------- */
 function $(id){ return document.getElementById(id); }
 var els = {};
-["btn-home","week-pill","week-prev","week-next","btn-settings","col-left","col-right","ring-fg","ring-text","progress-sub","progress-girl",
+["btn-home","week-pill","btn-settings","col-left","col-right","ring-fg","ring-text","progress-sub","progress-girl",
 "view-week","view-day","btn-back","day-title","day-sub","day-counter","day-list","day-empty","empty-girl","day-done","done-girl",
 "add-form","f-text","f-date","f-time","f-photo","f-rem-on","f-rem-when","photo-preview-wrap","photo-preview","photo-clear",
 "sheet-backdrop","week-sheet","year-prev","year-next","year-label","months-grid","weeks-list","week-sheet-close",
@@ -844,15 +844,44 @@ try{
 });
 els["btn-back"].onclick=function(){ els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); };
 els["btn-home"].onclick=function(){ weekStart=startOfWeekMonday(new Date()); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); bumpDecor(); window.scrollTo({top:0,behavior:"smooth"}); };
-/* стрелочки листания недель без открытия выбора */
+/* листание недель: свайп влево — прошлая, вправо — следующая */
 function stepWeek(dir){
   weekStart=addDays(weekStart, dir*7);
   els["view-day"].classList.add("hidden");
   els["view-week"].classList.remove("hidden");
   renderWeek(); bumpDecor();
 }
-if(els["week-prev"]) els["week-prev"].onclick=function(){ stepWeek(-1); };
-if(els["week-next"]) els["week-next"].onclick=function(){ stepWeek(1); };
+/* свайп по экрану: влево — прошлая неделя, вправо — следующая ♡ */
+function suppressNextClick(){
+  var stop = function(ev){ ev.stopPropagation(); ev.preventDefault(); };
+  document.addEventListener("click", stop, true);
+  setTimeout(function(){ document.removeEventListener("click", stop, true); }, 350);
+}
+function initSwipe(){
+  var s = {x:0, y:0, t:0, on:false};
+  function start(e){
+    if(!e.touches || e.touches.length!==1) { s.on=false; return; }
+    var t = e.touches[0];
+    s.x=t.clientX; s.y=t.clientY; s.t=Date.now(); s.on=true;
+  }
+  function end(e){
+    if(!s.on) return;
+    s.on=false;
+    var t = (e.changedTouches && e.changedTouches[0]);
+    if(!t) return;
+    var dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if(Math.abs(dx) < 60) return;             // не свайп
+    if(Math.abs(dx) < Math.abs(dy) * 1.5) return; // свайп вертикальный — скролл
+    if(Date.now() - s.t > 1000) return;      // долго жала — это не свайп
+    var tg = e.target;
+    if(tg && tg.closest && tg.closest(".sheet, .rem-modal, .backdrop, .add-form, .week-pill")) return;
+    if(els["view-day"] && !els["view-day"].classList.contains("hidden")) return; // на экране дня не листаем
+    if(dx < 0) stepWeek(-1); else stepWeek(1); // влево — назад, вправо — вперёд
+    suppressNextClick();
+  }
+  document.addEventListener("touchstart", start, {passive:true});
+  document.addEventListener("touchend", end, {passive:true});
+}
 
 function renderSheet(){
   els["year-label"].textContent=sheetYear;
@@ -985,6 +1014,7 @@ function init(){
   renderWeek();
   // ищем локальные картинки для чередования, потом обновляем маскота
   discoverGirls(function(){ applyDecor(); renderThemes(); });
+  initSwipe();
   // пропущенные при входе
   setTimeout(function(){ checkReminders(true); }, 800);
   setInterval(function(){ checkReminders(false); }, 20000);
