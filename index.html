@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Дневник Суи</title>
+<meta name="description" content="Дневник Суи — милый личный дневник-планировщик. Неделя, день, фото, напоминания. Всё хранится только в твоём телефоне.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="styles.css">
+<meta name="theme-color" content="#ffb7d5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Дневник Суи">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+</head>
+<body data-theme="kawaii">
+<div id="bg-symbols" aria-hidden="true"></div>
+
+<header class="topbar">
+  <button id="btn-home" class="round-btn" aria-label="Домой, текущая неделя">🏠</button>
+  <button id="week-pill" class="week-pill" aria-label="Выбрать месяц и неделю">19 окт.–25 окт.</button>
+  <button id="btn-settings" class="round-btn" aria-label="Настройки">⚙️</button>
+</header>
+
+<main id="view-week" class="view">
+  <div class="week-grid">
+    <div class="week-col" id="col-left"></div>
+    <div class="week-col" id="col-right"></div>
+  </div>
+  <div class="week-progress-card" id="week-progress-card">
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 80 80" width="84" height="84">
+        <circle class="ring-bg" cx="40" cy="40" r="32"></circle>
+        <circle class="ring-fg" id="ring-fg" cx="40" cy="40" r="32"></circle>
+      </svg>
+      <div class="ring-text" id="ring-text">0%</div>
+    </div>
+    <div class="progress-info">
+      <div class="progress-title">Неделя выполнена</div>
+      <div class="progress-sub" id="progress-sub">☑ 0/0</div>
+      <div class="progress-girl" id="progress-girl"></div>
+    </div>
+  </div>
+</main>
+
+<main id="view-day" class="view hidden">
+  <div class="day-head">
+    <button id="btn-back" class="round-btn">‹</button>
+    <div class="day-title-wrap">
+      <div class="day-title" id="day-title">Понедельник</div>
+      <div class="day-sub" id="day-sub">19 октября</div>
+    </div>
+    <div class="day-counter" id="day-counter">☑ 0/0</div>
+  </div>
+  <div id="day-empty" class="day-empty hidden">
+    <div class="empty-girl" id="empty-girl"></div>
+    <p>Пока тут пусто… ♡<br>Добавь первую запись дня!</p>
+  </div>
+  <div id="day-list" class="day-list"></div>
+  <div id="day-done" class="day-done hidden">
+    <div class="done-girl" id="done-girl"></div>
+    <p>Умница! 100% ✧ 🎀</p>
+  </div>
+
+  <form id="add-form" class="add-form">
+    <div class="form-title">Новая запись ✎</div>
+    <textarea id="f-text" rows="2" maxlength="500" placeholder="Что случилось? Что сделать? ♡"></textarea>
+    <div class="form-row">
+      <label>Дата <input type="date" id="f-date" required></label>
+      <label>Время <input type="time" id="f-time" required></label>
+    </div>
+    <div class="form-row">
+      <label class="file-label">📷 Фото <input type="file" id="f-photo" accept="image/*"></label>
+      <label class="rem-label"><input type="checkbox" id="f-rem-on"> ⏰ Напомнить</label>
+      <input type="datetime-local" id="f-rem-when">
+    </div>
+    <div id="photo-preview-wrap" class="hidden">
+      <img id="photo-preview" alt="превью фото">
+      <button type="button" id="photo-clear" class="mini-btn">убрать ✕</button>
+    </div>
+    <button type="submit" class="big-btn">Добавить ♡</button>
+    <p class="form-hint">Фото сжимается до 900px, чтобы поместиться в телефон. Напоминание звенит, пока дневник открыт. Если пропустила — покажу тостом при входе ♡</p>
+  </form>
+</main>
+
+<div id="sheet-backdrop" class="backdrop hidden"></div>
+
+<section id="week-sheet" class="sheet hidden" aria-label="Выбор месяца и недели">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Выбери неделю ♡</div>
+  <div class="year-row">
+    <button id="year-prev" class="round-btn small">‹</button>
+    <div id="year-label" class="year-label">2026</div>
+    <button id="year-next" class="round-btn small">›</button>
+  </div>
+  <div id="months-grid" class="months-grid"></div>
+  <div id="weeks-list" class="weeks-list"></div>
+  <button id="week-sheet-close" class="big-btn ghost">Закрыть</button>
+</section>
+
+<section id="settings-sheet" class="sheet hidden" aria-label="Настройки">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Настройки ⚙️</div>
+  <div class="set-block">
+    <div class="set-label">Тема ♡</div>
+    <div class="themes-grid" id="themes-grid"></div>
+  </div>
+  <div class="set-block">
+    <div class="set-label">Оформление ♡</div>
+    <div class="decor-row">
+      <button id="decor-girls" class="decor-btn">Девочки</button>
+      <button id="decor-flowers" class="decor-btn">Цветочки</button>
+      <button id="decor-none" class="decor-btn">Убрать всё</button>
+    </div>
+    <p class="set-text" id="decor-hint">Девочки: твои Настя, Алиса, Нюша, Ксюша с чередованием по тапу ♡</p>
+  </div>
+  <div class="set-block">
+    <div class="set-label">Девочки</div>
+    <p class="set-text">Каждая тема — со своей девочкой: кавай — <b>Настя</b> 💗, светлая — <b>Алиса</b> 🤍, тёмная — <b>Нюша</b> 🌙, готика — <b>Ксюша</b> 🖤. Твои файлы в папке <b>girls/</b> я не трогаю и не удаляю. Положишь новые с правильными именами — они подхватятся сами ♡</p>
+  </div>
+  <div class="set-block">
+    <div class="set-label">Напоминания</div>
+    <p class="set-text">Айфон не даёт будить закрытый дневник без сервера, поэтому: пока дневник открыт — перезвон + вибрация + уведомление. Пропущенное покажу тостом при следующем входе. Разреши уведомления кнопкой ниже ♡</p>
+    <button id="btn-notify" class="big-btn ghost">Разрешить уведомления 🔔</button>
+    <button id="btn-test-sound" class="big-btn ghost">Проверить звук ♪</button>
+  </div>
+  <div class="set-block">
+    <div class="set-label">О дневнике</div>
+    <p class="set-text">«Дневник Суи» хранит всё только в твоём телефоне (localStorage). Без регистрации и интернета. Для установки: открой сайт в Safari → Поделиться → «На экран “Домой”» 🎀</p>
+  </div>
+  <button id="settings-close" class="big-btn">Готово ♡</button>
+</section>
+
+<div id="rem-backdrop" class="backdrop hidden"></div>
+<div id="rem-modal" class="rem-modal hidden" role="dialog" aria-label="Про напоминания">
+  <div class="rem-emoji">⏰</div>
+  <p class="rem-text">Напоминалки звенят, только пока дневник открыт ♡ Айфон не умеет будить закрытые приложения, поэтому для важных дел поставь будильник на это же время — и точно ничего не забудешь!</p>
+  <button id="rem-modal-ok" class="big-btn">Понятно ♡</button>
+</div>
+
+<div id="del-backdrop" class="backdrop hidden"></div>
+<div id="del-modal" class="rem-modal hidden" role="dialog" aria-label="Удалить запись">
+  <div class="rem-emoji">🗑</div>
+  <p class="rem-text">Удалить эту запись? Вернуть её уже не получится ♡</p>
+  <div class="rem-btns">
+    <button id="del-no" class="big-btn ghost">Оставить</button>
+    <button id="del-yes" class="big-btn danger">Удалить</button>
+  </div>
+</div>
+
+<div id="mascot" class="mascot" title="Привет!">
+  <div id="mascot-img" class="mascot-img"></div>
+  <div id="mascot-bubble" class="mascot-bubble hidden"></div>
+</div>
+
+<div id="toast-wrap" class="toast-wrap"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
