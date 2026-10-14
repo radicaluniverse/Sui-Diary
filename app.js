@@ -772,6 +772,31 @@ els["btn-settings"].onclick=function(){ openSheet("settings"); };
 els["week-sheet-close"].onclick=closeSheets;
 els["settings-close"].onclick=closeSheets;
 els["sheet-backdrop"].onclick=closeSheets;
+// ползунок тоже закрывает + свайп вниз по листу
+try{
+  var handles = document.querySelectorAll(".sheet-handle");
+  for(var hi=0; hi<handles.length; hi++){
+    (function(h){ h.addEventListener("click", closeSheets); })(handles[hi]);
+  }
+}catch(e){}
+["week-sheet","settings-sheet"].forEach(function(id){
+  var sh = $(id);
+  if(!sh || !sh.addEventListener) return;
+  var sy = null;
+  sh.addEventListener("touchstart", function(e){ if(e.touches && e.touches.length===1) sy=e.touches[0].clientY; }, {passive:true});
+  sh.addEventListener("touchmove", function(e){
+    if(sy===null || !e.touches) return;
+    var dy=e.touches[0].clientY-sy;
+    if(dy>0) sh.style.transform="translateY("+dy+"px)";
+  }, {passive:true});
+  sh.addEventListener("touchend", function(e){
+    var dy=0;
+    try{ dy=(e.changedTouches[0].clientY-sy)||0; }catch(err){}
+    sh.style.transform="";
+    if(dy>70) closeSheets();
+    sy=null;
+  });
+});
 els["btn-back"].onclick=function(){ els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); };
 els["btn-home"].onclick=function(){ weekStart=startOfWeekMonday(new Date()); els["view-day"].classList.add("hidden"); els["view-week"].classList.remove("hidden"); renderWeek(); window.scrollTo({top:0,behavior:"smooth"}); };
 
