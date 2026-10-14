@@ -298,6 +298,24 @@ function fmtRem(when){
   return d.getDate()+" "+MONTHS_SHORT[d.getMonth()]+" в "+(t||"--:--");
 }
 function uid(){ return "e"+Date.now().toString(36)+Math.floor(Math.random()*9999); }
+/* время «сейчас» в формате datetime-local и «уже прошло ли» */
+function nowLocalStr(){
+  var n = new Date();
+  return n.getFullYear()+"-"+pad(n.getMonth()+1)+"-"+pad(n.getDate())+"T"+pad(n.getHours())+":"+pad(n.getMinutes());
+}
+function isPast(when){ return String(when||"") <= nowLocalStr(); }
+/* переносим напоминание на новую дату, сохраняя его время */
+function moveReminder(e, newDate, newTime){
+  if(!e.rem || !e.rem.on || !e.rem.when || !newDate) return false;
+  var old = String(e.rem.when);
+  var oldTime = old.indexOf("T")>=0 ? old.split("T")[1].slice(0,5) : "";
+  var newWhen = newDate + "T" + (oldTime || newTime || "09:00");
+  if(newWhen === old) return false;
+  e.rem.when = newWhen;
+  // если новое время ещё в будущем — сбрасываем «уже сработало»
+  if(!isPast(newWhen)){ try{ delete DB.fired[e.id]; }catch(err){} }
+  return true;
+}
 
 /* ---------- состояние ---------- */
 var weekStart = startOfWeekMonday(new Date());
@@ -686,8 +704,13 @@ function renderDay(){
     div.querySelector('[data-act="save"]').onclick=function(){
       var nd=div.querySelector('[data-f="date"]').value;
       var nt=div.querySelector('[data-f="time"]').value;
+      var moved=false;
       if(nd) e.date=nd; if(nt) e.time=nt;
-      save(); renderDay(); renderWeek(); toast("Дата обновлена ♡", true); bumpDecor();
+      // напоминание едет вместе с записью ♡
+      if(moveReminder(e, nd, nt)) moved=true;
+      save(); renderDay(); renderWeek();
+      toast(moved ? "Дата и напоминание обновлены ♡" : "Дата обновлена ♡", true);
+      bumpDecor();
     };
     els["day-list"].appendChild(div);
   });
@@ -783,6 +806,13 @@ if(els["f-rem-on"]) els["f-rem-on"].addEventListener("change", function(){
 });
 if(els["rem-modal-ok"]) els["rem-modal-ok"].onclick=hideRemInfo;
 if(els["rem-backdrop"]) els["rem-backdrop"].onclick=hideRemInfo;
+// если поменяли дату записи — переносим и напоминание на тот же день ♡
+if(els["f-date"]) els["f-date"].addEventListener("change", function(){
+  if(!els["f-rem-on"].checked || !els["f-rem-when"].value) return;
+  var old = String(els["f-rem-when"].value);
+  if(old.indexOf("T")<0) return;
+  els["f-rem-when"].value = els["f-date"].value + "T" + old.split("T")[1].slice(0,5);
+});
 els["add-form"].addEventListener("submit", function(ev){
   ev.preventDefault();
   var text=els["f-text"].value.trim();
@@ -851,7 +881,7 @@ function stepWeek(dir){
   els["view-week"].classList.remove("hidden");
   renderWeek(); bumpDecor();
 }
-/* свайп по экрану: влево — прошлая неделя, вправо — следующая ♡ */
+/* свайп по экрану: влево — следующая неделя, вправо — прошлая ♡ */
 function suppressNextClick(){
   var stop = function(ev){ ev.stopPropagation(); ev.preventDefault(); };
   document.addEventListener("click", stop, true);
@@ -876,7 +906,7 @@ function initSwipe(){
     var tg = e.target;
     if(tg && tg.closest && tg.closest(".sheet, .rem-modal, .backdrop, .add-form, .week-pill")) return;
     if(els["view-day"] && !els["view-day"].classList.contains("hidden")) return; // на экране дня не листаем
-    if(dx < 0) stepWeek(-1); else stepWeek(1); // влево — назад, вправо — вперёд
+    if(dx < 0) stepWeek(1); else stepWeek(-1); // влево — вперёд, вправо — назад
     suppressNextClick();
   }
   document.addEventListener("touchstart", start, {passive:true});
@@ -963,9 +993,7 @@ function fireReminder(e){
   toast("⏰ "+head+txt, true);
 }
 function checkReminders(showMissed){
-  var now=new Date();
-  var pad2=function(n){return (n<10?"0":"")+n;};
-  var nowLocal = now.getFullYear()+"-"+pad2(now.getMonth()+1)+"-"+pad2(now.getDate())+"T"+pad2(now.getHours())+":"+pad2(now.getMinutes());
+  var nowLocal = nowLocalStr();
   DB.entries.forEach(function(e){
     if(!e.rem || !e.rem.on || !e.rem.when) return;
     if(DB.fired[e.id]) return;
