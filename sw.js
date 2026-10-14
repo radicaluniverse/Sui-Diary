@@ -1,4 +1,6 @@
-/* Дневник Суи — service worker, офлайн ♡ */
+/* Дневник Суи — service worker, офлайн ♡
+   ВАЖНО: сначала пробуем интернет, и только если его нет — берём из кэша.
+   Так новая версия дневника появляется сразу, а без сети всё равно работает. */
 var CACHE = "sui-diary-v3";
 var FILES = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", function(e){
@@ -12,12 +14,14 @@ self.addEventListener("activate", function(e){
 self.addEventListener("fetch", function(e){
   if(e.request.method!=="GET") return;
   e.respondWith(
-    caches.match(e.request).then(function(hit){
-      return hit || fetch(e.request).then(function(res){
-        var copy = res.clone();
-        caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
-        return res;
-      }).catch(function(){ return caches.match("./index.html"); });
+    fetch(e.request).then(function(res){
+      var copy = res.clone();
+      caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+      return res;
+    }).catch(function(){
+      return caches.match(e.request).then(function(hit){
+        return hit || caches.match("./index.html");
+      });
     })
   );
 });
